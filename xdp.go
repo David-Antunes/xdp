@@ -227,7 +227,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		syscall.PROT_READ|syscall.PROT_WRITE,
 		syscall.MAP_PRIVATE|syscall.MAP_ANONYMOUS|syscall.MAP_POPULATE)
 	if err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("syscall.Mmap failed: %v", err)
+		}
 		return nil, fmt.Errorf("syscall.Mmap failed: %v", err)
 	}
 
@@ -246,21 +248,27 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		uintptr(unsafe.Pointer(&xdpUmemReg)),
 		unsafe.Sizeof(xdpUmemReg), 0)
 	if rc != 0 {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_REG failed: %v", errno)
+		}
 		return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_REG failed: %v", errno)
 	}
 
 	err = syscall.SetsockoptInt(xsk.fd, unix.SOL_XDP, unix.XDP_UMEM_FILL_RING,
 		options.FillRingNumDescs)
 	if err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_FILL_RING failed: %v", err)
+		}
 		return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_FILL_RING failed: %v", err)
 	}
 
 	err = unix.SetsockoptInt(xsk.fd, unix.SOL_XDP, unix.XDP_UMEM_COMPLETION_RING,
 		options.CompletionRingNumDescs)
 	if err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_COMPLETION_RING failed: %v", err)
+		}
 		return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_UMEM_COMPLETION_RING failed: %v", err)
 	}
 
@@ -269,7 +277,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		err = unix.SetsockoptInt(xsk.fd, unix.SOL_XDP, unix.XDP_RX_RING,
 			options.RxRingNumDescs)
 		if err != nil {
-			xsk.Close()
+			if xsk.Close() != nil {
+				return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_RX_RING failed: %v", err)
+			}
 			return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_RX_RING failed: %v", err)
 		}
 		rxRing = true
@@ -280,7 +290,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		err = unix.SetsockoptInt(xsk.fd, unix.SOL_XDP, unix.XDP_TX_RING,
 			options.TxRingNumDescs)
 		if err != nil {
-			xsk.Close()
+			if xsk.Close() != nil {
+				return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_TX_RING failed: %v", err)
+			}
 			return nil, fmt.Errorf("unix.SetsockoptUint64 XDP_TX_RING failed: %v", err)
 		}
 		txRing = true
@@ -298,7 +310,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		uintptr(unsafe.Pointer(&offsets)),
 		uintptr(unsafe.Pointer(&vallen)), 0)
 	if rc != 0 {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("unix.Syscall6 getsockopt XDP_MMAP_OFFSETS failed: %v", errno)
+		}
 		return nil, fmt.Errorf("unix.Syscall6 getsockopt XDP_MMAP_OFFSETS failed: %v", errno)
 	}
 
@@ -307,7 +321,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		syscall.PROT_READ|syscall.PROT_WRITE,
 		syscall.MAP_SHARED|syscall.MAP_POPULATE)
 	if err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("syscall.Mmap XDP_UMEM_PGOFF_FILL_RING failed: %v", err)
+		}
 		return nil, fmt.Errorf("syscall.Mmap XDP_UMEM_PGOFF_FILL_RING failed: %v", err)
 	}
 
@@ -323,7 +339,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		syscall.PROT_READ|syscall.PROT_WRITE,
 		syscall.MAP_SHARED|syscall.MAP_POPULATE)
 	if err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("syscall.Mmap XDP_UMEM_PGOFF_COMPLETION_RING failed: %v", err)
+		}
 		return nil, fmt.Errorf("syscall.Mmap XDP_UMEM_PGOFF_COMPLETION_RING failed: %v", err)
 	}
 
@@ -340,7 +358,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 			syscall.PROT_READ|syscall.PROT_WRITE,
 			syscall.MAP_SHARED|syscall.MAP_POPULATE)
 		if err != nil {
-			xsk.Close()
+			if xsk.Close() != nil {
+				return nil, fmt.Errorf("syscall.Mmap XDP_PGOFF_RX_RING failed: %v", err)
+			}
 			return nil, fmt.Errorf("syscall.Mmap XDP_PGOFF_RX_RING failed: %v", err)
 		}
 
@@ -360,7 +380,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 			syscall.PROT_READ|syscall.PROT_WRITE,
 			syscall.MAP_SHARED|syscall.MAP_POPULATE)
 		if err != nil {
-			xsk.Close()
+			if xsk.Close() != nil {
+				return nil, fmt.Errorf("syscall.Mmap XDP_PGOFF_TX_RING failed: %v", err)
+			}
 			return nil, fmt.Errorf("syscall.Mmap XDP_PGOFF_TX_RING failed: %v", err)
 		}
 
@@ -378,7 +400,9 @@ func NewSocket(Ifindex int, QueueID int, options *SocketOptions) (xsk *Socket, e
 		QueueID: uint32(QueueID),
 	}
 	if err = unix.Bind(xsk.fd, &sa); err != nil {
-		xsk.Close()
+		if xsk.Close() != nil {
+			return nil, fmt.Errorf("syscall.Bind SockaddrXDP failed: %v", err)
+		}
 		return nil, fmt.Errorf("syscall.Bind SockaddrXDP failed: %v", err)
 	}
 
@@ -448,7 +472,7 @@ func (xsk *Socket) Receive(num int) []Desc {
 // descriptors were actually pushed onto the Tx ring queue.
 // The descriptors can be acquired either by calling the GetDescs() method or
 // by calling Receive() method.
-func (xsk *Socket) Transmit(descs []Desc) (numSubmitted int) {
+func (xsk *Socket) Transmit(descs []Desc) (numSubmitted int, err error) {
 	numFreeSlots := xsk.NumFreeTxSlots()
 	if len(descs) > numFreeSlots {
 		descs = descs[:numFreeSlots]
@@ -469,7 +493,6 @@ func (xsk *Socket) Transmit(descs []Desc) (numSubmitted int) {
 
 	var rc uintptr
 	var errno syscall.Errno
-	tries := 1
 	for {
 		rc, _, errno = unix.Syscall6(syscall.SYS_SENDTO,
 			uintptr(xsk.fd),
@@ -485,19 +508,14 @@ func (xsk *Socket) Transmit(descs []Desc) (numSubmitted int) {
 			case unix.EBUSY: // "completed but not sent"
 				return
 			default:
-				if tries == 0 {
-					panic(fmt.Errorf("sendto failed with rc=%d and errno=%d", rc, errno))
-				} else {
-					tries -= 1
-					fmt.Printf("sendto failed with rc=%d and errno=%d\n", rc, errno)
-				}
+				return 0, fmt.Errorf("sendto failed with rc=%d and errno=%d", rc, errno)
 			}
 		} else {
 			break
 		}
 	}
 
-	return
+	return numSubmitted, nil
 }
 
 // FD returns the file descriptor associated with this xdp.Socket which can be
